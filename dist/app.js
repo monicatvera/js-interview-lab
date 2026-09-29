@@ -10,6 +10,32 @@
   const app = document.querySelector('#app');
   let filter = 'Todos';
   let session = null;
+  let codeFilter = 'Todos';
+  const TIMED_KEY = 'js-interview-lab-timed-v1';
+  const RESULT_KEY = 'js-interview-lab-timed-result-v1';
+  const readSession = key => {try{return JSON.parse(sessionStorage.getItem(key))}catch{return null}};
+  let timed = readSession(TIMED_KEY);
+  const persistTimed = () => {try{sessionStorage.setItem(TIMED_KEY,JSON.stringify(timed))}catch{}};
+  const timeLeft = () => Math.max(0, Math.ceil((timed.deadline-Date.now())/1000));
+  const clockText = seconds => `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+  function startTimed(){
+    const pick = level => shuffle(codeProblems.filter(p=>p.level===level))[0].id;
+    timed={ids:[pick('Fácil'),pick('Medio'),pick('Difícil')],startedAt:Date.now(),deadline:Date.now()+35*60*1000,solved:{}};
+    persistTimed();navigate(`codigo/${timed.ids[0]}`);
+  }
+  function finishTimed(reason){
+    if(!timed)return;
+    const result={...timed,reason,endedAt:Date.now()};
+    try{sessionStorage.setItem(RESULT_KEY,JSON.stringify(result));sessionStorage.removeItem(TIMED_KEY)}catch{}
+    timed=null;navigate('entrevista-resultado');
+  }
+  function updateClock(){
+    if(!timed)return;
+    const left=timeLeft();
+    if(left<=0){finishTimed('time');return}
+    const el=app.querySelector('#timedClock');if(el)el.textContent=clockText(left);
+  }
+  setInterval(updateClock,1000);
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(progress)); } catch {} updateXp(); };
   const xp = () => Object.keys(progress.correct).length * 10 + Object.keys(progress.read).length * 5 + Object.keys(progress.outputCorrect).length * 15 + Object.keys(progress.codeSolved).length * 25;
   const updateXp = () => document.querySelector('#topXp').textContent = `✦ ${xp()} XP`;
@@ -96,17 +122,34 @@
   }
   function codeHub(){
     const solved = codeProblems.filter(p=>progress.codeSolved[p.id]).length;
-    app.innerHTML=`<div class="view arena-view"><button class="back" id="back">← Volver al mapa</button><div class="eyebrow">Laboratorio de código</div><h1>Resuelve un problema.<br><em>Entiende cada fallo.</em></h1><p class="output-intro">Escribe una función, ejecútala contra casos de prueba y mejora tu solución. Empieza por un reto fácil. ${solved} de ${codeProblems.length} resueltos.</p><div class="arena-grid">${codeProblems.map((p,i)=>`<button class="arena-card" data-code="${p.id}"><span class="pill">${p.level} · ${p.category} · ${p.minutes} min</span><strong>${i+1}. ${escapeHTML(p.title)}</strong><span>${progress.codeSolved[p.id]?'✓ Resuelto':'Resolver →'}</span></button>`).join('')}</div><p class="small">El código se ejecuta en un proceso separado del navegador con límite de tiempo. Los tests comprueban ejemplos, pero no garantizan que una solución funcione para todos los casos posibles.</p></div>`;
+    const categories=['Todos','Fácil','Medio','Difícil'];
+    const visible=codeProblems.filter(p=>codeFilter==='Todos'||p.level===codeFilter);
+    app.innerHTML=`<div class="view arena-view"><button class="back" id="back">← Volver al mapa</button><div class="eyebrow">Laboratorio de código</div><h1>Resuelve un problema.<br><em>Entiende cada fallo.</em></h1><p class="output-intro">Escribe una función, ejecútala contra casos de prueba y mejora tu solución. ${solved} de ${codeProblems.length} resueltos.</p><section class="timed-intro"><div><span class="panel-kicker">Simulacro de código</span><h2>3 retos · 35 minutos</h2><p>Un problema fácil, uno medio y uno difícil. El reloj continúa si recargas o sales de esta pantalla. Tu puntuación cuenta los retos que superes durante el simulacro.</p></div><button class="primary" id="startTimed">${timed?'Continuar simulacro →':'Empezar simulacro →'}</button></section><div class="section-heading"><h2>Elige un nivel</h2><span class="chip">${codeProblems.length} retos</span></div><div class="controls" role="group" aria-label="Filtrar retos por dificultad">${categories.map(c=>`<button class="filter" data-code-filter="${c}" aria-pressed="${codeFilter===c}">${c} (${c==='Todos'?codeProblems.length:codeProblems.filter(p=>p.level===c).length})</button>`).join('')}</div><div class="arena-grid">${visible.map(p=>`<button class="arena-card" data-code="${p.id}"><span class="pill">${p.level} · ${p.category} · ${p.minutes} min</span><strong>${escapeHTML(p.title)}</strong><span>${progress.codeSolved[p.id]?'✓ Resuelto':'Resolver →'}</span></button>`).join('')}</div><p class="small">El código se ejecuta en un proceso separado del navegador con límite de tiempo. Los tests comprueban ejemplos, pero no garantizan que una solución funcione para todos los casos posibles.</p></div>`;
     app.querySelector('#back').onclick=()=>navigate('inicio');
+    app.querySelector('#startTimed').onclick=()=>timed?navigate(`codigo/${timed.ids.find(id=>!timed.solved[id])||timed.ids[0]}`):startTimed();
+    app.querySelectorAll('[data-code-filter]').forEach(b=>b.onclick=()=>{codeFilter=b.dataset.codeFilter;codeHub()});
+    app.querySelectorAll('[data-code]').forEach(b=>b.onclick=()=>navigate(`codigo/${b.dataset.code}`));
+  }
+  function timedResult(){
+    const result=readSession(RESULT_KEY);
+    if(!result){navigate('laboratorio');return}
+    const passed=result.ids.filter(id=>result.solved[id]).length;
+    const used=Math.min(35,Math.ceil((result.endedAt-result.startedAt)/60000));
+    app.innerHTML=`<div class="view result-card"><div class="eyebrow">Simulacro de código ${result.reason==='time'?'· Tiempo agotado':'· Terminado'}</div><div class="result-number">${passed}/3</div><h1>${passed===3?'¡Los tres retos superados!':passed?'Buen trabajo: ya sabes qué practicar.':'Un punto de partida para mejorar.'}</h1><p>Tiempo empleado: ${used} min de 35. Solo cuentan los retos resueltos durante esta sesión. Puedes seguir practicando cada problema con calma.</p><div class="timed-summary">${result.ids.map(id=>{const p=codeProblems.find(x=>x.id===id);return `<button class="arena-card" data-code="${id}"><span class="pill">${p.level}</span><strong>${escapeHTML(p.title)}</strong><span>${result.solved[id]?'✓ Superado':'Practicar →'}</span></button>`}).join('')}</div><div class="quiz-controls"><button class="primary" id="retryTimed">Nuevo simulacro</button><button class="secondary" id="hub">Todos los retos</button></div></div>`;
+    app.querySelector('#retryTimed').onclick=startTimed;
+    app.querySelector('#hub').onclick=()=>navigate('laboratorio');
     app.querySelectorAll('[data-code]').forEach(b=>b.onclick=()=>navigate(`codigo/${b.dataset.code}`));
   }
   function codeChallenge(id){
     const p=codeProblems.find(x=>x.id===id); if(!p){navigate('laboratorio');return}
     const index=codeProblems.indexOf(p);
-    app.innerHTML=`<div class="view arena-view"><button class="back" id="back">← Todos los retos</button><div class="eyebrow">Reto ${index+1} de ${codeProblems.length} · ${p.level} · ${p.category}</div><h1>${escapeHTML(p.title)}</h1><p class="output-intro">${escapeHTML(p.statement)}</p><div class="arena-example"><strong>Ejemplo</strong><code>${escapeHTML(p.example)}</code></div><div class="arena-workspace"><section class="question-card"><label class="output-label" for="codeEditor">Tu solución en JavaScript</label><textarea id="codeEditor" class="output-input code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="editorHelp">${escapeHTML(p.starter)}</textarea><p class="small" id="editorHelp">Escribe una función con el mismo nombre y parámetros del ejemplo. Se conserva en este navegador.</p><div class="quiz-controls"><button class="primary" id="runCode">▶ Ejecutar tests</button><button class="secondary" id="resetCode">Reiniciar código</button></div><div id="codeFeedback" aria-live="polite"></div></section><aside class="arena-side"><div class="panel"><span class="panel-kicker">Pistas progresivas</span><h3>¿Te has atascado?</h3><p>Prueba primero los tests y busca qué caso falla.</p><button class="secondary wide" id="hintCode">Ver pista</button><div class="reveal" id="hintText" hidden></div><button class="secondary wide arena-gap" id="solutionCode">Ver una solución</button><div class="reveal" id="solutionText" hidden></div></div><div class="panel tutor-panel"><span class="panel-kicker">IA gratis en tu dispositivo</span><h3>Pide una pista a la tutora</h3><p>Opcional: al pulsar se descarga un modelo pequeño (varios cientos de MB). Necesita WebGPU; puede tardar y equivocarse. Tu código se procesa en este dispositivo. Los tests y pistas funcionan sin IA.</p><button class="secondary wide" id="askTutor">Activar y pedir pista IA</button><p class="small" id="tutorStatus" role="status"></p><div class="tutor-answer" id="tutorAnswer" aria-live="polite"></div></div></aside></div><div class="quiz-controls"><button class="secondary" id="prevCode" ${index===0?'disabled':''}>← Anterior</button><button class="secondary" id="nextCode" ${index===codeProblems.length-1?'disabled':''}>Siguiente →</button></div></div>`;
+    const inTimed=!!timed && timed.ids.includes(id);
+    const timedIndex=inTimed?timed.ids.indexOf(id):-1;
+    app.innerHTML=`<div class="view arena-view"><button class="back" id="back">← Todos los retos</button><div class="eyebrow">${inTimed?`Simulacro · reto ${timedIndex+1} de 3`:`Reto ${index+1} de ${codeProblems.length}`} · ${p.level} · ${p.category}</div>${inTimed?`<div class="timed-bar"><span>⏱ Tiempo restante: <strong id="timedClock">${clockText(timeLeft())}</strong></span><span>${Object.keys(timed.solved).length}/3 superados</span><button class="secondary" id="finishTimed">Terminar simulacro</button></div>`:``}<h1>${escapeHTML(p.title)}</h1><p class="output-intro">${escapeHTML(p.statement)}</p><div class="arena-example"><strong>Ejemplo</strong><code>${escapeHTML(p.example)}</code></div><div class="arena-workspace"><section class="question-card"><label class="output-label" for="codeEditor">Tu solución en JavaScript</label><textarea id="codeEditor" class="output-input code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="editorHelp">${escapeHTML(p.starter)}</textarea><p class="small" id="editorHelp">Escribe una función con el mismo nombre y parámetros del ejemplo. Se conserva en este navegador.</p><div class="quiz-controls"><button class="primary" id="runCode">▶ Ejecutar tests</button><button class="secondary" id="resetCode">Reiniciar código</button></div><div id="codeFeedback" aria-live="polite"></div></section><aside class="arena-side"><div class="panel"><span class="panel-kicker">Pistas progresivas</span><h3>¿Te has atascado?</h3><p>Prueba primero los tests y busca qué caso falla.</p><button class="secondary wide" id="hintCode">Ver pista</button><div class="reveal" id="hintText" hidden></div><button class="secondary wide arena-gap" id="solutionCode">Ver una solución</button><div class="reveal" id="solutionText" hidden></div></div><div class="panel tutor-panel"><span class="panel-kicker">IA gratis en tu dispositivo</span><h3>Pide una pista a la tutora</h3><p>Opcional: al pulsar se descarga un modelo pequeño (varios cientos de MB). Necesita WebGPU; puede tardar y equivocarse. Tu código se procesa en este dispositivo. Los tests y pistas funcionan sin IA.</p><button class="secondary wide" id="askTutor">Activar y pedir pista IA</button><p class="small" id="tutorStatus" role="status"></p><div class="tutor-answer" id="tutorAnswer" aria-live="polite"></div></div></aside></div><div class="quiz-controls"><button class="secondary" id="prevCode" ${(inTimed?timedIndex===0:index===0)?'disabled':''}>← Anterior</button><button class="secondary" id="nextCode" ${(inTimed?timedIndex===2:index===codeProblems.length-1)?'disabled':''}>Siguiente →</button></div></div>`;
     app.querySelector('#back').onclick=()=>navigate('laboratorio');
-    app.querySelector('#prevCode').onclick=()=>navigate(`codigo/${codeProblems[index-1].id}`);
-    app.querySelector('#nextCode').onclick=()=>navigate(`codigo/${codeProblems[index+1].id}`);
+    app.querySelector('#prevCode').onclick=()=>navigate(`codigo/${inTimed?timed.ids[timedIndex-1]:codeProblems[index-1].id}`);
+    app.querySelector('#nextCode').onclick=()=>navigate(`codigo/${inTimed?timed.ids[timedIndex+1]:codeProblems[index+1].id}`);
+    app.querySelector('#finishTimed')?.addEventListener('click',()=>finishTimed('manual'));
     const editor=app.querySelector('#codeEditor');
     const draftKey=`js-interview-lab-code-${id}`;
     try { editor.value=localStorage.getItem(draftKey) || p.starter; } catch {}
@@ -125,7 +168,10 @@
         if(data.error){latestResult=`Error de sintaxis: ${data.error}`;feedback.innerHTML=`<div class="output-feedback"><h2>Revisa el código</h2><p>${escapeHTML(data.error)}</p></div>`;return}
         const passed=data.results.filter(r=>r.ok).length;
         latestResult=`${passed}/${p.tests.length} tests correctos. `+data.results.map((r,i)=>`Caso ${i+1}: ${r.ok?'bien':r.error||'esperado '+JSON.stringify(p.tests[i].expected)+', recibido '+r.actual}`).join('; ');
-        if(passed===p.tests.length){progress.codeSolved[p.id]=true;save()}
+        if(passed===p.tests.length){
+          progress.codeSolved[p.id]=true;save();
+          if(inTimed && timed && timeLeft()>0){timed.solved[id]=true;persistTimed();const count=app.querySelector('.timed-bar span:nth-child(2)');if(count)count.textContent=`${Object.keys(timed.solved).length}/3 superados`}
+        }
         feedback.innerHTML=`<div class="output-feedback"><h2>${passed===p.tests.length?'¡Todos los tests pasan! +25 XP si era nuevo':`${passed} de ${p.tests.length} tests superados`}</h2><ol>${data.results.map((r,i)=>`<li class="${r.ok?'output-right':'output-wrong'}"><strong>Caso ${i+1}: ${r.ok?'bien':'revisa este caso'}</strong><p>Entrada: <code>${escapeHTML(JSON.stringify(p.tests[i].args))}</code></p>${r.ok?'':`<p>Esperado: <code>${escapeHTML(JSON.stringify(p.tests[i].expected))}</code> · Tu resultado: <code>${escapeHTML(r.error||r.actual)}</code></p>`}</li>`).join('')}</ol>${passed===p.tests.length?`<p class="output-lesson">${escapeHTML(p.explanation)}</p>`:''}</div>`;
       };
       const timer=setTimeout(()=>finish({error:'Tu código tardó más de 2 segundos. Comprueba si hay un bucle que no termina.'}),2000);
@@ -149,7 +195,7 @@
     app.querySelector('#prev').onclick=()=>navigate(`caso/${index-1}`);
     app.querySelector('#next').onclick=()=>navigate(`caso/${index+1}`);
   }
-  function render(){updateXp();const route=hash();if(route==='reto'){quiz();return}if(route==='salidas'){outputHub();return}if(route==='laboratorio'){codeHub();return}if(route.startsWith('codigo/')){codeChallenge(route.split('/')[1]);return}if(route.startsWith('salida/')){outputChallenge(route.split('/')[1]);return}if(route.startsWith('tema/')){lesson(route.split('/')[1]);return}if(route.startsWith('caso/')){scenario(Number(route.split('/')[1]));return}dashboard()}
+  function render(){updateXp();if(timed && timeLeft()<=0){finishTimed('time');return}const route=hash();if(route==='entrevista-resultado'){timedResult();return}if(route==='reto'){quiz();return}if(route==='salidas'){outputHub();return}if(route==='laboratorio'){codeHub();return}if(route.startsWith('codigo/')){codeChallenge(route.split('/')[1]);return}if(route.startsWith('salida/')){outputChallenge(route.split('/')[1]);return}if(route.startsWith('tema/')){lesson(route.split('/')[1]);return}if(route.startsWith('caso/')){scenario(Number(route.split('/')[1]));return}dashboard()}
   window.addEventListener('hashchange',render);render();
   if(document.modelContext?.registerTool){try{
     const register=(tool)=>Promise.resolve(document.modelContext.registerTool(tool)).catch(()=>{});

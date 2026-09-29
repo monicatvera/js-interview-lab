@@ -35,4 +35,4 @@ Abre `http://localhost:8000`. También puedes publicar la carpeta `dist` en un a
 
 Comprueba la sintaxis con `for file in dist/*.js; do node --check "$file" || exit 1; done`. El progreso no se sincroniza entre dispositivos: no hay cuentas ni servidor de datos.
 
-[Abre la web publicada](https://js-interview-lab-monica.monicatvera.chatgpt.site) (puede pedir permiso del propietario).
+[Abre la web publicada](https://monicatvera.github.io/js-interview-lab/).

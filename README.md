@@ -6,6 +6,8 @@ Web en español para entender conceptos de JavaScript y frontend y practicar ent
 
 - 38 temas con una idea sencilla, una explicación, código y una forma de razonarlo en entrevista.
 - 76 preguntas con respuesta explicada.
+- Ocho retos de código con editor, tests automáticos, pistas, soluciones y progreso.
+- Tutora IA local opcional mediante WebLLM: descarga un modelo en el navegador si hay WebGPU. Sin cuenta ni clave; los tests y las pistas funcionan aunque la IA no esté disponible.
 - Ocho retos de «¿qué imprime?» donde escribes la salida y recibes una explicación por línea.
 - Siete casos guiados: componentes, búsqueda y ejercicios de programación.
 - Simulacro, reto diario, repaso de fallos y progreso guardado en este navegador con `localStorage`.
@@ -30,6 +32,9 @@ Abre `http://localhost:8000`. También puedes publicar la carpeta `dist` en un a
 - `dist/content-polish.js`: redacción clara de las explicaciones y respuestas. Se aplica después de los otros dos archivos.
 - `dist/content-senior.js`: preguntas de entrevista senior y ejercicios adicionales.
 - `dist/content-core-extra.js`: fundamentos que completan el temario de JavaScript.
+- `dist/code-problems.js`: retos y casos de prueba.
+- `dist/code-runner.js`: ejecución de soluciones en un Worker con límite de tiempo.
+- `dist/local-tutor.js`: pistas opcionales con un modelo local.
 - `dist/output-challenges.js`: código, salidas y explicación de cada reto escrito.
 - `dist/app.js`: navegación, cuestionarios y progreso.
 - `dist/styles.css`: diseño.

@@ -12,9 +12,11 @@ self.onmessage = ({data}) => {
     if (typeof solve !== 'function') throw Error('Tu código debe definir una función.');
     for (const test of data.tests) {
       try {
-        const actual = solve(...structuredClone(test.args));
+        const inputs = structuredClone(test.args), before = structuredClone(inputs);
+        const actual = solve(...inputs);
         if (actual && typeof actual.then === 'function') throw Error('Este reto espera una respuesta síncrona.');
-        results.push({ok:equal(actual,test.expected),actual:JSON.stringify(actual) ?? String(actual)});
+        const changed = !!test.preserveInput && !equal(inputs,before);
+        results.push({ok:equal(actual,test.expected) && !changed,actual:JSON.stringify(actual) ?? String(actual),error:changed?'Has modificado la entrada original.':''});
       } catch (error) { results.push({ok:false,error:String(error.message || error).slice(0,180)}); }
     }
     self.postMessage({results});

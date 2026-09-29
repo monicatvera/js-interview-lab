@@ -1,5 +1,5 @@
-// Explicaciones originales y ejercicios propios. El índice de DevCaress orientó la selección
-// de temas; los enlaces de cada lección apuntan a documentación de referencia.
+// Explicaciones originales y ejercicios propios. Los enlaces de cada lección
+// apuntan a documentación de referencia.
 window.BEGINNER = {
   tipos:{plain:'JavaScript a veces cambia un dato de tipo sin avisarte. Y algunos números decimales se guardan con una pequeña aproximación.',analogy:'Como escribir 1/3 como 0,333: por mucho que añadas cifras, no es exactamente 1/3.',steps:'Mira primero los tipos de cada lado. Comprueba si el operador convierte valores. Si hay decimales, recuerda que puede existir una aproximación.'},
   scope:{plain:'Una variable tiene una zona donde se puede usar. Además, hay un momento a partir del cual ya puedes leerla.',analogy:'Es como una reserva a tu nombre: puede estar registrada en el sistema, pero no puedes entrar a la habitación antes del check-in.',steps:'Encuentra el bloque o la función. Identifica si se usó var, let o const. Sigue el código hasta la línea de la declaración.'},

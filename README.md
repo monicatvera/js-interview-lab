@@ -4,10 +4,10 @@ Web en español para entender conceptos de JavaScript y frontend y practicar ent
 
 ## Qué encontrarás
 
-- 26 temas con una idea sencilla, una explicación, código y una forma de razonarlo en entrevista.
-- 52 preguntas con respuesta explicada.
+- 32 temas con una idea sencilla, una explicación, código y una forma de razonarlo en entrevista.
+- 64 preguntas con respuesta explicada.
 - Ocho retos de «¿qué imprime?» donde escribes la salida y recibes una explicación por línea.
-- Tres casos guiados: una tabla reutilizable, un modal accesible y una búsqueda con respuestas fuera de orden.
+- Siete casos guiados: componentes, búsqueda y ejercicios de programación.
 - Simulacro, reto diario, repaso de fallos y progreso guardado en este navegador con `localStorage`.
 - Enlaces a la documentación original en cada lección.
 
@@ -28,6 +28,7 @@ Abre `http://localhost:8000`. También puedes publicar la carpeta `dist` en un a
 - `dist/content.js`: primeros temas, ejemplos y preguntas.
 - `dist/content-extra.js`: temas adicionales, explicaciones iniciales y casos prácticos.
 - `dist/content-polish.js`: redacción clara de las explicaciones y respuestas. Se aplica después de los otros dos archivos.
+- `dist/content-senior.js`: preguntas de entrevista senior y ejercicios adicionales.
 - `dist/output-challenges.js`: código, salidas y explicación de cada reto escrito.
 - `dist/app.js`: navegación, cuestionarios y progreso.
 - `dist/styles.css`: diseño.

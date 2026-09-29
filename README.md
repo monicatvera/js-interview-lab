@@ -16,7 +16,7 @@ Web en español para entender conceptos de JavaScript y frontend y practicar ent
 - Simulacro, reto diario, repaso de fallos y progreso guardado en este navegador con `localStorage`.
 - Enlaces a la documentación original en cada lección.
 
-El índice de [DevCaress](https://github.com/DevCaress/guia-entrevistas-de-programacion) ayudó a seleccionar temas. Las explicaciones y preguntas de esta web son propias.
+Las explicaciones y preguntas de esta web son propias.
 
 ## Ejecutar
 

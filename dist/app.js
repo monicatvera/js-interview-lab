@@ -123,7 +123,7 @@
     app.querySelector('#showOutput').onclick=()=>show(true);
   }
   function patternHub(){
-    app.innerHTML=`<div class="view arena-view"><button class="back" id="back">← Volver al mapa</button><div class="eyebrow">Aprende a resolver</div><h1>Una pista para empezar<br><em>antes de escribir código.</em></h1><p class="output-intro">Un patrón es una forma de reconocer problemas parecidos. Mira cómo se mueve cada ejemplo y luego prueba un reto. No hace falta memorizar el código.</p><div class="pattern-grid">${patterns.map(p=>`<button class="pattern-card" data-pattern="${p.id}"><span class="pattern-icon" aria-hidden="true">${p.icon}</span><strong>${p.title}</strong><span>${p.summary}</span><small>${p.challenges.length} retos relacionados →</small></button>`).join('')}</div></div>`;
+    app.innerHTML=`<div class="view arena-view"><button class="back" id="back">← Volver al mapa</button><div class="eyebrow">Aprende a resolver</div><h1>Una pista para empezar<br><em>antes de escribir código.</em></h1><p class="output-intro">Un patrón es una forma de reconocer problemas parecidos. Mira cómo se mueve cada ejemplo y luego prueba un reto. No hace falta memorizar el código.</p><div class="pattern-grid">${patterns.map(p=>`<button class="pattern-card" data-pattern="${p.id}"><span class="pattern-icon" aria-hidden="true">${p.icon}</span><strong>${p.title}</strong><span>${p.summary}</span><small>${p.challenges.length} ${p.challenges.length===1?'reto relacionado':'retos relacionados'} →</small></button>`).join('')}</div></div>`;
     app.querySelector('#back').onclick=()=>navigate('inicio');
     app.querySelectorAll('[data-pattern]').forEach(b=>b.onclick=()=>navigate(`patron/${b.dataset.pattern}`));
   }

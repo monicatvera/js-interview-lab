@@ -15,6 +15,7 @@ Web en español para entender conceptos de JavaScript y frontend y practicar ent
 - Siete casos guiados: componentes, búsqueda y ejercicios de programación.
 - Simulacro, reto diario, repaso de fallos y progreso guardado en este navegador con `localStorage`.
 - Enlaces a la documentación original en cada lección.
+- Páginas estáticas para cada tema, catálogo y sitemap generados en el despliegue para buscadores; la práctica interactiva mantiene el progreso local.
 
 Las explicaciones y preguntas de esta web son propias.
 
@@ -23,6 +24,7 @@ Las explicaciones y preguntas de esta web son propias.
 No necesita instalar paquetes. Sirve la carpeta `dist` con un servidor HTTP local:
 
 ```sh
+node scripts/build-seo.mjs
 python3 -m http.server 8000 --directory dist
 ```
 
@@ -48,6 +50,7 @@ Abre `http://localhost:8000`. También puedes publicar la carpeta `dist` en un a
 - `dist/app.js`: navegación, cuestionarios y progreso.
 - `dist/styles.css`: diseño.
 - `dist/index.html`: estructura y orden de los scripts.
+- `scripts/build-seo.mjs`: genera `dist/temas/*.html` y `dist/sitemap.xml` a partir del temario; al añadir un tema, el despliegue crea su página automáticamente.
 
 Comprueba la sintaxis con `for file in dist/*.js; do node --check "$file" || exit 1; done`. El progreso no se sincroniza entre dispositivos: no hay cuentas ni servidor de datos.
 

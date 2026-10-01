@@ -4,13 +4,13 @@ Web en español para entender conceptos de JavaScript y frontend y practicar ent
 
 ## Qué encontrarás
 
-- 55 temas con una idea sencilla, una explicación, código y una forma de razonarlo en entrevista. Incluyen CORS, seguridad de sesión, rendimiento del navegador, microtareas, errores asíncronos y trampas de memoización.
-- 110 preguntas con respuesta explicada.
+- 61 temas con una idea sencilla, una explicación, código y una forma de razonarlo en entrevista. Incluyen CORS, seguridad de sesión, rendimiento del navegador, microtareas, errores asíncronos y trampas de memoización.
+- 123 preguntas con respuesta explicada.
 - Veintisiete retos de código por niveles con editor, tests automáticos, pistas, soluciones y progreso.
-- Diecinueve entrevistas guiadas: React, diseño frontend, refactorización, Git/CI, componentes prácticos y situaciones de producción. Incluyen un `useFetch` cancelable, un dashboard con polling y reintentos, y un simulacro para contar un proyecto con criterio.
+- Veintidós entrevistas guiadas: React, diseño frontend, refactorización, Git/CI, componentes prácticos y situaciones de producción. Incluyen un `useFetch` cancelable, un dashboard con polling y reintentos, y un simulacro para contar un proyecto con criterio.
 - Cuatro patrones para resolver problemas (mapas, dos punteros, ventana deslizante y pila), con pasos visuales y enlaces a retos donde aplicarlos.
 - Simulacro cronometrado de 35 minutos con un reto fácil, uno medio y uno difícil. El reloj se conserva al recargar la página durante esa sesión.
-- Simulacro oral de 30 minutos con diez preguntas abiertas, respuesta modelo oculta, notas opcionales y autoevaluación. El tiempo y las notas se conservan en esta pestaña si recargas.
+- Simulacro oral de 30 minutos con dos recorridos de diez preguntas abiertas (JavaScript/navegador y React senior), respuesta modelo oculta, notas opcionales y autoevaluación. El tiempo y las notas se conservan en esta pestaña si recargas.
 - Tutora IA local opcional mediante WebLLM: descarga un modelo en el navegador si hay WebGPU. Sin cuenta ni clave; los tests y las pistas funcionan aunque la IA no esté disponible.
 - Ocho retos de «¿qué imprime?» donde escribes la salida y recibes una explicación por línea.
 - Siete casos guiados: componentes, búsqueda y ejercicios de programación.
@@ -45,6 +45,7 @@ Abre `http://localhost:8000`. También puedes publicar la carpeta `dist` en un a
 - `dist/interview-workshops-extra.js`: tres casos y retos adicionales de componentes con estados asíncronos.
 - `dist/interview-production.js`: tres casos de entrevista sobre peticiones, polling y defensa de un proyecto, con dos retos de código relacionados.
 - `dist/react-deep-dive.js`: diez lecciones de React avanzado, veinte preguntas y tres entrevistas guiadas.
+- `dist/react-senior-prep.js`: seis lecciones de React senior, trece preguntas, tres casos de diagnóstico y diez preguntas orales.
 - `dist/browser-interview.js`: siete lecciones de navegador y seguridad, catorce preguntas y diez preguntas para el simulacro oral.
 - `dist/code-runner.js`: ejecución de soluciones en un Worker con límite de tiempo.
 - `dist/local-tutor.js`: pistas opcionales con un modelo local.

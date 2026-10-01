@@ -19,7 +19,8 @@
   let timed = readSession(TIMED_KEY);
   const ORAL_KEY = 'js-interview-lab-oral-v1';
   const ORAL_RESULT_KEY = 'js-interview-lab-oral-result-v1';
-  const oralQuestions = window.ORAL_INTERVIEW || [];
+  const oralBanks = { general: window.ORAL_INTERVIEW || [], react: window.REACT_ORAL_INTERVIEW || [] };
+  const questionsFor = attempt => oralBanks[attempt?.bank] || oralBanks.general;
   let oral = readSession(ORAL_KEY);
   const persistOral = () => {try{sessionStorage.setItem(ORAL_KEY,JSON.stringify(oral))}catch{}};
   const oralLeft = () => oral ? Math.max(0,Math.ceil((oral.deadline-Date.now())/1000)) : 0;
@@ -50,9 +51,9 @@
     const el=app.querySelector('#timedClock');if(el)el.textContent=clockText(left);
   }
   setInterval(updateClock,1000);
-  function startOral(){
+  function startOral(bank='general'){
     const now=Date.now();
-    oral={startedAt:now,deadline:now+30*60*1000,index:0,answers:{},grades:{},revealed:{}};
+    oral={bank:typeof bank==='string' && oralBanks[bank] ? bank : 'general',startedAt:now,deadline:now+30*60*1000,index:0,answers:{},grades:{},revealed:{}};
     persistOral();navigate('oral');
   }
   function finishOral(reason){
@@ -84,8 +85,8 @@
     app.querySelector('#workshopsTopBtn').onclick=()=>navigate('talleres');
     app.querySelector('.side').insertAdjacentHTML('afterbegin',`<div class="panel workshop-panel"><div class="panel-kicker">🎯 Nuevas entrevistas guiadas</div><h3>React, arquitectura y equipo</h3><p>Decide qué harías ante situaciones reales. Hay ${workshops.reduce((sum,group)=>sum+group.cases.length,0)} casos con explicación, criterios de comprobación y retos de código.</p><button class="primary wide" id="workshopsBtn">Entrenar entrevistas →</button></div>`);
     app.querySelector('#workshopsBtn').onclick=()=>navigate('talleres');
-    app.querySelector('.side').insertAdjacentHTML('afterbegin',`<div class="panel oral-panel"><div class="panel-kicker">🎙️ Entrevista en voz alta</div><h3>10 preguntas · 30 minutos</h3><p>Responde con tus palabras, descubre una respuesta modelo y evalúa qué te falta. Sin cuenta ni IA.</p><button class="primary wide" id="oralBtn">${oral?'Continuar simulacro →':'Empezar simulacro oral →'}</button></div>`);
-    app.querySelector('#oralBtn').onclick=()=>oral?navigate('oral'):startOral();
+    app.querySelector('.side').insertAdjacentHTML('afterbegin',`<div class="panel oral-panel"><div class="panel-kicker">🎙️ Entrevista en voz alta</div><h3>10 preguntas · 30 minutos</h3><p>Elige JavaScript y navegador o React senior. Explica qué harías, por qué, cuándo lo evitarías y un ejemplo. Cada simulacro tiene 10 preguntas y respuesta modelo.</p><label for="oralBank">Tema del simulacro</label><select id="oralBank" class="output-input" ${oral?'disabled':''}><option value="general" ${oral?.bank!=='react'?'selected':''}>JavaScript y navegador</option><option value="react" ${oral?.bank==='react'?'selected':''}>React senior</option></select><button class="primary wide" id="oralBtn">${oral?'Continuar simulacro →':'Empezar simulacro oral →'}</button></div>`);
+    app.querySelector('#oralBtn').onclick=()=>oral?navigate('oral'):startOral(app.querySelector('#oralBank').value);
     app.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;dashboard()});
     app.querySelectorAll('[data-topic]').forEach(link=>link.onclick=event=>{if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();navigate(`tema/${link.dataset.topic}`)});
     app.querySelector('#dailyBtn').onclick=()=>startQuiz([daily()],'daily');
@@ -119,6 +120,7 @@
 
   function oralChallenge(){
     if(!oral){navigate('inicio');return}
+    const oralQuestions=questionsFor(oral);
     const i=oral.index,q=oralQuestions[i],revealed=!!oral.revealed[i],grade=oral.grades[i];
     app.innerHTML=`<div class="view quiz-wrap oral-view"><button class="back" id="back">← Volver al mapa</button><div class="eyebrow">Simulacro oral · ${escapeHTML(q.topic)}</div><div class="oral-toolbar"><strong>Pregunta ${i+1} de ${oralQuestions.length}</strong><span>⏱ <strong id="oralClock">${clockText(oralLeft())}</strong></span><button class="secondary" id="finishOral">Terminar y ver repaso</button></div><div class="quiz-progress-track"><div style="width:${(i+1)/oralQuestions.length*100}%"></div></div><div class="question-card"><span class="pill">Intenta explicarlo en voz alta antes de mirar</span><h1>${escapeHTML(q.prompt)}</h1><label class="output-label" for="oralAnswer">Tu respuesta, si quieres escribirla</label><textarea id="oralAnswer" class="output-input" rows="5" placeholder="Lo explicaría así…" aria-describedby="oralPrivacy"></textarea><p id="oralPrivacy" class="small">Este borrador se conserva durante el simulacro en esta pestaña. No se envía a ningún servidor.</p><button class="secondary" id="revealOral" ${revealed?'disabled':''}>${revealed?'Respuesta mostrada':'Ver respuesta modelo'}</button><div id="oralModel" class="reveal" ${revealed?'':'hidden'}><strong>Una forma de explicarlo</strong><p>${escapeHTML(q.answer)}</p><h2>Comprueba si mencionaste esto</h2><ul>${q.check.map(c=>`<li>${escapeHTML(c)}</li>`).join('')}</ul><div class="oral-grade"><span>¿Cómo te salió?</span><button class="secondary" data-grade="ready" aria-pressed="${grade==='ready'}">✓ Lo sé explicar</button><button class="secondary" data-grade="review" aria-pressed="${grade==='review'}">↻ Necesito repasar</button></div><button class="source-link oral-lesson" id="oralLesson">Repasar este tema →</button></div></div><div class="quiz-controls"><button class="secondary" id="oralPrev" ${i===0?'disabled':''}>← Anterior</button><button class="primary" id="oralNext">${i===oralQuestions.length-1?'Terminar y ver repaso':'Siguiente →'}</button></div></div>`;
     const editor=app.querySelector('#oralAnswer');editor.value=oral.answers[i]||'';
@@ -134,13 +136,14 @@
   function oralResult(){
     const result=readSession(ORAL_RESULT_KEY);
     if(!result){navigate('inicio');return}
+    const oralQuestions=questionsFor(result);
     const ready=Object.values(result.grades).filter(grade=>grade==='ready').length;
     const review=Object.values(result.grades).filter(grade=>grade==='review').length;
     const minutes=Math.min(30,Math.ceil((result.endedAt-result.startedAt)/60000));
     app.innerHTML=`<div class="view quiz-wrap oral-view"><button class="back" id="back">← Volver al mapa</button><div class="eyebrow">${result.reason==='time'?'Tiempo agotado':'Simulacro terminado'}</div><h1>Tu repaso de entrevista</h1><p class="output-intro">${minutes} min · ${ready} que sabes explicar · ${review} para repasar · ${oralQuestions.length-ready-review} sin evaluar. Esta puntuación es tu propia valoración, no una corrección automática.</p><div class="oral-results">${oralQuestions.map((q,i)=>`<details class="oral-result"><summary><span>${i+1}. ${escapeHTML(q.topic)}</span><strong>${result.grades[i]==='ready'?'✓ Lo sé':result.grades[i]==='review'?'↻ Repasar':'Sin evaluar'}</strong></summary><p><strong>Pregunta:</strong> ${escapeHTML(q.prompt)}</p>${result.answers[i]?`<p><strong>Tu respuesta:</strong> ${escapeHTML(result.answers[i])}</p>`:''}<p><strong>Respuesta modelo:</strong> ${escapeHTML(q.answer)}</p><ul>${q.check.map(c=>`<li>${escapeHTML(c)}</li>`).join('')}</ul><button class="secondary" data-oral-topic="${escapeHTML(q.lesson)}">Estudiar este tema →</button></details>`).join('')}</div><div class="quiz-controls"><button class="primary" id="retryOral">Otro intento</button><button class="secondary" id="homeOral">Volver al mapa</button></div></div>`;
     app.querySelector('#back').onclick=()=>navigate('inicio');
     app.querySelector('#homeOral').onclick=()=>navigate('inicio');
-    app.querySelector('#retryOral').onclick=startOral;
+    app.querySelector('#retryOral').onclick=()=>startOral(result.bank || 'general');
     app.querySelectorAll('[data-oral-topic]').forEach(button=>button.onclick=()=>navigate(`tema/${button.dataset.oralTopic}`));
   }
 

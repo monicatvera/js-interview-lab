@@ -17,6 +17,12 @@
   const RESULT_KEY = 'js-interview-lab-timed-result-v1';
   const readSession = key => {try{return JSON.parse(sessionStorage.getItem(key))}catch{return null}};
   let timed = readSession(TIMED_KEY);
+  const ORAL_KEY = 'js-interview-lab-oral-v1';
+  const ORAL_RESULT_KEY = 'js-interview-lab-oral-result-v1';
+  const oralQuestions = window.ORAL_INTERVIEW || [];
+  let oral = readSession(ORAL_KEY);
+  const persistOral = () => {try{sessionStorage.setItem(ORAL_KEY,JSON.stringify(oral))}catch{}};
+  const oralLeft = () => oral ? Math.max(0,Math.ceil((oral.deadline-Date.now())/1000)) : 0;
   const persistTimed = () => {try{sessionStorage.setItem(TIMED_KEY,JSON.stringify(timed))}catch{}};
   const timeLeft = () => Math.max(0, Math.ceil((timed.deadline-Date.now())/1000));
   const clockText = seconds => `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
@@ -32,12 +38,29 @@
     timed=null;navigate('entrevista-resultado');
   }
   function updateClock(){
+    if(oral){
+      const left=oralLeft();
+      const clock=app.querySelector('#oralClock');
+      if(clock)clock.textContent=clockText(left);
+      if(left<=0){finishOral('time');return}
+    }
     if(!timed)return;
     const left=timeLeft();
     if(left<=0){finishTimed('time');return}
     const el=app.querySelector('#timedClock');if(el)el.textContent=clockText(left);
   }
   setInterval(updateClock,1000);
+  function startOral(){
+    const now=Date.now();
+    oral={startedAt:now,deadline:now+30*60*1000,index:0,answers:{},grades:{},revealed:{}};
+    persistOral();navigate('oral');
+  }
+  function finishOral(reason){
+    if(!oral)return;
+    const result={...oral,reason,endedAt:Date.now()};
+    try{sessionStorage.setItem(ORAL_RESULT_KEY,JSON.stringify(result));sessionStorage.removeItem(ORAL_KEY)}catch{}
+    oral=null;navigate('oral-resultado');
+  }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(progress)); } catch {} updateXp(); };
   const xp = () => Object.keys(progress.correct).length * 10 + Object.keys(progress.read).length * 5 + Object.keys(progress.outputCorrect).length * 15 + Object.keys(progress.codeSolved).length * 25 + Object.keys(progress.workshops).length * 15;
   const updateXp = () => document.querySelector('#topXp').textContent = `✦ ${xp()} XP`;
@@ -61,6 +84,8 @@
     app.querySelector('#workshopsTopBtn').onclick=()=>navigate('talleres');
     app.querySelector('.side').insertAdjacentHTML('afterbegin',`<div class="panel workshop-panel"><div class="panel-kicker">🎯 Nuevas entrevistas guiadas</div><h3>React, arquitectura y equipo</h3><p>Decide qué harías ante situaciones reales. Hay ${workshops.reduce((sum,group)=>sum+group.cases.length,0)} casos con explicación, criterios de comprobación y retos de código.</p><button class="primary wide" id="workshopsBtn">Entrenar entrevistas →</button></div>`);
     app.querySelector('#workshopsBtn').onclick=()=>navigate('talleres');
+    app.querySelector('.side').insertAdjacentHTML('afterbegin',`<div class="panel oral-panel"><div class="panel-kicker">🎙️ Entrevista en voz alta</div><h3>10 preguntas · 30 minutos</h3><p>Responde con tus palabras, descubre una respuesta modelo y evalúa qué te falta. Sin cuenta ni IA.</p><button class="primary wide" id="oralBtn">${oral?'Continuar simulacro →':'Empezar simulacro oral →'}</button></div>`);
+    app.querySelector('#oralBtn').onclick=()=>oral?navigate('oral'):startOral();
     app.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;dashboard()});
     app.querySelectorAll('[data-topic]').forEach(link=>link.onclick=event=>{if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();navigate(`tema/${link.dataset.topic}`)});
     app.querySelector('#dailyBtn').onclick=()=>startQuiz([daily()],'daily');
@@ -91,6 +116,33 @@
     app.querySelector('#source')?.addEventListener('click',()=>window.open(lessons.find(t=>t.id===q.topicId).source,'_blank','noopener'));
   }
   function result(){const {score,questions,mode}=session;app.innerHTML=`<div class="view result-card"><div class="eyebrow">Sesión completada</div><div class="result-number">${score}/${questions.length}</div><h1>${score===questions.length?'¡Ronda perfecta!':score>=questions.length*.7?'Vas por buen camino.':'Ya sabes qué repasar.'}</h1><p>${score===questions.length?'Has acertado todas. Prueba otra ronda para practicar más temas.':'Cada respuesta ya tiene una explicación y tus fallos quedan guardados para repasarlos. Repite los conceptos que más cuestan.'}</p><div class="quiz-controls"><button class="primary" id="retry">Repetir esta ronda</button><button class="secondary" id="home">Volver al mapa</button></div></div>`;app.querySelector('#retry').onclick=()=>startQuiz(shuffle(questions),mode);app.querySelector('#home').onclick=()=>{session=null;navigate('inicio')};}
+
+  function oralChallenge(){
+    if(!oral){navigate('inicio');return}
+    const i=oral.index,q=oralQuestions[i],revealed=!!oral.revealed[i],grade=oral.grades[i];
+    app.innerHTML=`<div class="view quiz-wrap oral-view"><button class="back" id="back">← Volver al mapa</button><div class="eyebrow">Simulacro oral · ${escapeHTML(q.topic)}</div><div class="oral-toolbar"><strong>Pregunta ${i+1} de ${oralQuestions.length}</strong><span>⏱ <strong id="oralClock">${clockText(oralLeft())}</strong></span><button class="secondary" id="finishOral">Terminar y ver repaso</button></div><div class="quiz-progress-track"><div style="width:${(i+1)/oralQuestions.length*100}%"></div></div><div class="question-card"><span class="pill">Intenta explicarlo en voz alta antes de mirar</span><h1>${escapeHTML(q.prompt)}</h1><label class="output-label" for="oralAnswer">Tu respuesta, si quieres escribirla</label><textarea id="oralAnswer" class="output-input" rows="5" placeholder="Lo explicaría así…" aria-describedby="oralPrivacy"></textarea><p id="oralPrivacy" class="small">Este borrador se conserva durante el simulacro en esta pestaña. No se envía a ningún servidor.</p><button class="secondary" id="revealOral" ${revealed?'disabled':''}>${revealed?'Respuesta mostrada':'Ver respuesta modelo'}</button><div id="oralModel" class="reveal" ${revealed?'':'hidden'}><strong>Una forma de explicarlo</strong><p>${escapeHTML(q.answer)}</p><h2>Comprueba si mencionaste esto</h2><ul>${q.check.map(c=>`<li>${escapeHTML(c)}</li>`).join('')}</ul><div class="oral-grade"><span>¿Cómo te salió?</span><button class="secondary" data-grade="ready" aria-pressed="${grade==='ready'}">✓ Lo sé explicar</button><button class="secondary" data-grade="review" aria-pressed="${grade==='review'}">↻ Necesito repasar</button></div><button class="source-link oral-lesson" id="oralLesson">Repasar este tema →</button></div></div><div class="quiz-controls"><button class="secondary" id="oralPrev" ${i===0?'disabled':''}>← Anterior</button><button class="primary" id="oralNext">${i===oralQuestions.length-1?'Terminar y ver repaso':'Siguiente →'}</button></div></div>`;
+    const editor=app.querySelector('#oralAnswer');editor.value=oral.answers[i]||'';
+    editor.addEventListener('input',()=>{oral.answers[i]=editor.value;persistOral()});
+    app.querySelector('#back').onclick=()=>navigate('inicio');
+    app.querySelector('#finishOral').onclick=()=>finishOral('manual');
+    app.querySelector('#revealOral').onclick=()=>{oral.revealed[i]=true;persistOral();app.querySelector('#oralModel').hidden=false;app.querySelector('#revealOral').disabled=true;app.querySelector('#revealOral').textContent='Respuesta mostrada'};
+    app.querySelectorAll('[data-grade]').forEach(button=>button.onclick=()=>{oral.grades[i]=button.dataset.grade;persistOral();app.querySelectorAll('[data-grade]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)))});
+    app.querySelector('#oralLesson').onclick=()=>navigate(`tema/${q.lesson}`);
+    app.querySelector('#oralPrev').onclick=()=>{oral.index--;persistOral();navigate('oral')};
+    app.querySelector('#oralNext').onclick=()=>{if(i===oralQuestions.length-1){finishOral('manual');return}oral.index++;persistOral();navigate('oral')};
+  }
+  function oralResult(){
+    const result=readSession(ORAL_RESULT_KEY);
+    if(!result){navigate('inicio');return}
+    const ready=Object.values(result.grades).filter(grade=>grade==='ready').length;
+    const review=Object.values(result.grades).filter(grade=>grade==='review').length;
+    const minutes=Math.min(30,Math.ceil((result.endedAt-result.startedAt)/60000));
+    app.innerHTML=`<div class="view quiz-wrap oral-view"><button class="back" id="back">← Volver al mapa</button><div class="eyebrow">${result.reason==='time'?'Tiempo agotado':'Simulacro terminado'}</div><h1>Tu repaso de entrevista</h1><p class="output-intro">${minutes} min · ${ready} que sabes explicar · ${review} para repasar · ${oralQuestions.length-ready-review} sin evaluar. Esta puntuación es tu propia valoración, no una corrección automática.</p><div class="oral-results">${oralQuestions.map((q,i)=>`<details class="oral-result"><summary><span>${i+1}. ${escapeHTML(q.topic)}</span><strong>${result.grades[i]==='ready'?'✓ Lo sé':result.grades[i]==='review'?'↻ Repasar':'Sin evaluar'}</strong></summary><p><strong>Pregunta:</strong> ${escapeHTML(q.prompt)}</p>${result.answers[i]?`<p><strong>Tu respuesta:</strong> ${escapeHTML(result.answers[i])}</p>`:''}<p><strong>Respuesta modelo:</strong> ${escapeHTML(q.answer)}</p><ul>${q.check.map(c=>`<li>${escapeHTML(c)}</li>`).join('')}</ul><button class="secondary" data-oral-topic="${escapeHTML(q.lesson)}">Estudiar este tema →</button></details>`).join('')}</div><div class="quiz-controls"><button class="primary" id="retryOral">Otro intento</button><button class="secondary" id="homeOral">Volver al mapa</button></div></div>`;
+    app.querySelector('#back').onclick=()=>navigate('inicio');
+    app.querySelector('#homeOral').onclick=()=>navigate('inicio');
+    app.querySelector('#retryOral').onclick=startOral;
+    app.querySelectorAll('[data-oral-topic]').forEach(button=>button.onclick=()=>navigate(`tema/${button.dataset.oralTopic}`));
+  }
 
   function outputHub(){
     const done=outputChallenges.filter(c=>progress.outputCorrect[c.id]).length;
@@ -257,7 +309,7 @@
     app.querySelector('#prev').onclick=()=>navigate(`caso/${index-1}`);
     app.querySelector('#next').onclick=()=>navigate(`caso/${index+1}`);
   }
-  function render(){updateXp();if(timed && timeLeft()<=0){finishTimed('time');return}const route=hash();if(route==='entrevista-resultado'){timedResult();return}if(route==='reto'){quiz();return}if(route==='salidas'){outputHub();return}if(route==='talleres'){workshopHub();return}if(route.startsWith('taller/')){const [,groupId,caseId]=route.split('/');workshopCase(groupId,caseId);return}if(route==='patrones'){patternHub();return}if(route.startsWith('patron/')){patternDetail(route.split('/')[1]);return}if(route==='laboratorio'){codeHub();return}if(route.startsWith('codigo/')){codeChallenge(route.split('/')[1]);return}if(route.startsWith('salida/')){outputChallenge(route.split('/')[1]);return}if(route.startsWith('tema/')){lesson(route.split('/')[1]);return}if(route.startsWith('caso/')){scenario(Number(route.split('/')[1]));return}dashboard()}
+  function render(){updateXp();if(oral && oralLeft()<=0){finishOral('time');return}if(timed && timeLeft()<=0){finishTimed('time');return}const route=hash();if(route==='oral'){oralChallenge();return}if(route==='oral-resultado'){oralResult();return}if(route==='entrevista-resultado'){timedResult();return}if(route==='reto'){quiz();return}if(route==='salidas'){outputHub();return}if(route==='talleres'){workshopHub();return}if(route.startsWith('taller/')){const [,groupId,caseId]=route.split('/');workshopCase(groupId,caseId);return}if(route==='patrones'){patternHub();return}if(route.startsWith('patron/')){patternDetail(route.split('/')[1]);return}if(route==='laboratorio'){codeHub();return}if(route.startsWith('codigo/')){codeChallenge(route.split('/')[1]);return}if(route.startsWith('salida/')){outputChallenge(route.split('/')[1]);return}if(route.startsWith('tema/')){lesson(route.split('/')[1]);return}if(route.startsWith('caso/')){scenario(Number(route.split('/')[1]));return}dashboard()}
   window.addEventListener('hashchange',render);render();
   if(document.modelContext?.registerTool){try{
     const register=(tool)=>Promise.resolve(document.modelContext.registerTool(tool)).catch(()=>{});

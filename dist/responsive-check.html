@@ -9,7 +9,9 @@
 <script>
 const frame=document.querySelector('#preview'), status=document.querySelector('#status'), report=document.querySelector('#report'), route=document.querySelector('#route'), width=document.querySelector('#width');
 let checks=0,failures=[],routes=[];
-const tick=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+// Each check forces layout through scrollWidth/getBoundingClientRect.
+// Rendering here is synchronous; geometry reads force a layout at each step.
+const tick=()=>Promise.resolve();
 const waitLoad=()=>new Promise(resolve=>frame.addEventListener('load',resolve,{once:true}));
 function check(label){
  const d=frame.contentDocument, root=d.documentElement;
@@ -17,7 +19,7 @@ function check(label){
  const bad=[...d.querySelectorAll('button,a,input,select,textarea,h1,h2,.panel,.lesson-card,.question-card,.code')].filter(el=>{if(!el.getClientRects().length||el.closest('dialog:not([open])'))return false;const b=el.getBoundingClientRect();return b.left < -1 || b.right>root.clientWidth+1;}).map(el=>el.tagName+'.'+el.className+': '+(el.textContent||'').trim().slice(0,65));
  checks++; if(over>1||bad.length)failures.push({width:width.value,screen:label,overflow:over,elements:bad.slice(0,8)});
 }
-async function go(hash){frame.contentWindow.location.hash=hash;await tick();}
+async function go(hash){const w=frame.contentWindow;w.location.hash=hash;w.dispatchEvent(new w.HashChangeEvent('hashchange'));await tick();}
 function click(selector){const el=frame.contentDocument.querySelector(selector);if(!el)throw Error('Falta control '+selector+' en '+frame.contentWindow.location.hash);el.click();}
 function addRoute(value,title){routes.push(value);const o=document.createElement('option');o.value=value;o.textContent=title;route.append(o);}
 frame.addEventListener('load',()=>{
@@ -39,6 +41,7 @@ document.querySelector('#run').onclick=async()=>{
   if(!frame.contentWindow.COURSE){const loaded=waitLoad();frame.src='./index.html?responsive-check=1';await loaded;}
   for(const size of ['320','390','610','768','1024','1440']){
    width.value=size;frame.style.width=size+'px';
+   await new Promise(resolve=>setTimeout(resolve,0));
    for(const r of ['inicio',...routes]){
     status.textContent='Revisando '+size+' px · '+r+' · '+checks+' comprobaciones';
     await go(r);check(r);

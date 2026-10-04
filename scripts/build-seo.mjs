@@ -10,7 +10,7 @@ const scripts = [
   'content.js', 'content-extra.js', 'content-polish.js', 'content-senior.js',
   'content-core-extra.js', 'output-challenges.js', 'code-problems.js',
   'code-problems-extra.js', 'patterns.js', 'interview-workshops.js',
-  'interview-workshops-extra.js', 'interview-production.js', 'react-deep-dive.js', 'browser-interview.js', 'react-senior-prep.js', 'realtime-web.js',
+  'interview-workshops-extra.js', 'interview-production.js', 'react-deep-dive.js', 'browser-interview.js', 'react-senior-prep.js', 'realtime-web.js', 'interview-complete.js',
 ];
 const context = vm.createContext({ window: {} });
 for (const file of scripts) vm.runInContext(fs.readFileSync(path.join(dist, file), 'utf8'), context, { filename: file });
@@ -38,7 +38,7 @@ const shell = ({ title, summary, canonical, body }) => `<!doctype html>
   <meta property="og:title" content="${escape(title)} · JS Interview Lab">
   <meta property="og:description" content="${escape(summary)}">
   <meta property="og:url" content="${escape(canonical)}">
-  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../styles.css?v=responsive-20261004">
 </head>
 <body><div class="shell">
   <header class="topbar"><a class="brand" href="../" aria-label="JS Interview Lab, inicio"><span class="brand-mark">{JS}</span><span>interview<span class="brand-accent">lab</span></span></a><span class="top-note">Aprende y practica para entrevistas frontend</span></header>

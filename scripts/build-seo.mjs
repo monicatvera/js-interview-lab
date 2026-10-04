@@ -10,7 +10,7 @@ const scripts = [
   'content.js', 'content-extra.js', 'content-polish.js', 'content-senior.js',
   'content-core-extra.js', 'output-challenges.js', 'code-problems.js',
   'code-problems-extra.js', 'patterns.js', 'interview-workshops.js',
-  'interview-workshops-extra.js', 'interview-production.js', 'react-deep-dive.js', 'browser-interview.js', 'react-senior-prep.js',
+  'interview-workshops-extra.js', 'interview-production.js', 'react-deep-dive.js', 'browser-interview.js', 'react-senior-prep.js', 'realtime-web.js',
 ];
 const context = vm.createContext({ window: {} });
 for (const file of scripts) vm.runInContext(fs.readFileSync(path.join(dist, file), 'utf8'), context, { filename: file });

@@ -4,15 +4,15 @@ Web en español para entender conceptos de JavaScript y frontend y practicar ent
 
 ## Qué encontrarás
 
-- 65 temas con una idea sencilla, una explicación, código y una forma de razonarlo en entrevista. Incluyen CORS, seguridad de sesión, rendimiento del navegador, microtareas, errores asíncronos y trampas de memoización.
-- 131 preguntas con respuesta explicada.
+- 71 temas con una idea sencilla, una explicación, código y una forma de razonarlo en entrevista. Incluyen CORS, seguridad de sesión, rendimiento del navegador, microtareas, errores asíncronos y trampas de memoización.
+- 143 preguntas con respuesta explicada.
 - Veintisiete retos de código por niveles con editor, tests automáticos, pistas, soluciones y progreso.
-- Veinticuatro entrevistas guiadas: React, diseño frontend, refactorización, Git/CI, componentes prácticos y situaciones de producción. Incluyen un `useFetch` cancelable, un dashboard con polling y reintentos, y un simulacro para contar un proyecto con criterio.
+- Veintisiete entrevistas guiadas: React, diseño frontend, refactorización, Git/CI, componentes prácticos y situaciones de producción. Incluyen un `useFetch` cancelable, un dashboard con polling y reintentos, y un simulacro para contar un proyecto con criterio.
 - Cuatro patrones para resolver problemas (mapas, dos punteros, ventana deslizante y pila), con pasos visuales y enlaces a retos donde aplicarlos.
 - Simulacro cronometrado de 35 minutos con un reto fácil, uno medio y uno difícil. El reloj se conserva al recargar la página durante esa sesión.
 - Simulacro oral de 30 minutos con dos recorridos de diez preguntas abiertas (JavaScript/navegador y React senior), respuesta modelo oculta, notas opcionales y autoevaluación. El tiempo y las notas se conservan en esta pestaña si recargas.
 - Tutora IA local opcional mediante WebLLM: descarga un modelo en el navegador si hay WebGPU. Sin cuenta ni clave; los tests y las pistas funcionan aunque la IA no esté disponible.
-- Doce retos de «¿qué imprime?» donde escribes la salida y recibes una explicación por línea.
+- Catorce retos de «¿qué imprime?» donde escribes la salida y recibes una explicación por línea.
 - Siete casos guiados: componentes, búsqueda y ejercicios de programación.
 - Simulacro, reto diario, repaso de fallos y progreso guardado en este navegador con `localStorage`.
 - Enlaces a la documentación original en cada lección.
@@ -45,6 +45,7 @@ Abre `http://localhost:8000`. También puedes publicar la carpeta `dist` en un a
 - `dist/interview-workshops-extra.js`: tres casos y retos adicionales de componentes con estados asíncronos.
 - `dist/interview-production.js`: tres casos de entrevista sobre peticiones, polling y defensa de un proyecto, con dos retos de código relacionados.
 - `dist/react-deep-dive.js`: diez lecciones de React avanzado, veinte preguntas y tres entrevistas guiadas.
+- `dist/interview-complete.js`: seis lecciones, doce preguntas, tres talleres y dos retos de salida sobre generadores, Next.js, sesiones, cifrado y datos masivos.
 - `dist/realtime-web.js`: cuatro lecciones, ocho preguntas, dos talleres y cuatro retos de salida sobre tiempo real, Lighthouse y seguridad.
 - `dist/react-senior-prep.js`: seis lecciones de React senior, trece preguntas, tres casos de diagnóstico y diez preguntas orales.
 - `dist/browser-interview.js`: siete lecciones de navegador y seguridad, catorce preguntas y diez preguntas para el simulacro oral.
@@ -52,7 +53,8 @@ Abre `http://localhost:8000`. También puedes publicar la carpeta `dist` en un a
 - `dist/local-tutor.js`: pistas opcionales con un modelo local.
 - `dist/output-challenges.js`: código, salidas y explicación de cada reto escrito.
 - `dist/app.js`: navegación, cuestionarios y progreso.
-- `dist/styles.css`: diseño.
+- `dist/styles.css`: diseño y adaptación a móviles/tabletas.
+- `dist/responsive-check.html`: revisión de todas las pantallas a 320, 390, 610, 768, 1024 y 1440 px, con progreso temporal que no modifica el del usuario. Es una herramienta de desarrollo excluida de indexación.
 - `dist/index.html`: estructura y orden de los scripts.
 - `scripts/build-seo.mjs`: genera `dist/temas/*.html` y `dist/sitemap.xml` a partir del temario; al añadir un tema, el despliegue crea su página automáticamente.
 

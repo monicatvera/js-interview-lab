@@ -77,12 +77,13 @@
   const xp = () => Object.keys(progress.correct).length * 10 + Object.keys(progress.read).length * 5 + Object.keys(progress.outputCorrect).length * 15 + Object.keys(progress.codeSolved).length * 25 + Object.keys(progress.workshops).length * 15;
   const updateXp = () => document.querySelector('#topXp').textContent = `✦ ${xp()} XP`;
   const escapeHTML = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const hash = () => decodeURIComponent(location.hash.slice(1) || 'inicio');
+  let layoutCheckRoute = 'inicio';
+  const hash = () => isLayoutCheck ? layoutCheckRoute : decodeURIComponent(location.hash.slice(1) || 'inicio');
   const todayIndex = () => [...dateKey()].reduce((sum,char)=>sum+char.charCodeAt(0),0) % allQuestions.length;
   const daily = () => allQuestions[todayIndex()];
   const dateKey = () => new Date().toLocaleDateString('en-CA');
   const streak = () => { let count = 0; const date = new Date(); if (!progress.days[date.toLocaleDateString('en-CA')]) date.setDate(date.getDate()-1); for(let i=0;i<365;i++){const key=date.toLocaleDateString('en-CA');if(!progress.days[key]) break;count++;date.setDate(date.getDate()-1)} return count; };
-  const navigate = route => {location.hash = route; window.scrollTo({top:0,behavior:'instant'}); render();};
+  const navigate = route => {if(isLayoutCheck)layoutCheckRoute=route;else location.hash = route; window.scrollTo({top:0,behavior:'instant'}); render();};
   function dashboard(){
     const mastered = lessons.filter(t => t.questions.every((_,i) => progress.correct[`${t.id}-${i}`])).length;
     const completed = Object.keys(progress.read).length;
@@ -120,7 +121,7 @@
     app.querySelector('#markRead').onclick=()=>{progress.read[id]=true;save();app.querySelector('#markRead').textContent='✓ Leído'};
   }
   function shuffle(array){return [...array].sort(()=>Math.random()-.5)}
-  function startQuiz(questions,mode){if(!questions.length){navigate('inicio');return}session={questions,index:0,answered:null,score:0,mode};location.hash='reto';window.scrollTo({top:0,behavior:'instant'});quiz();}
+  function startQuiz(questions,mode){if(!questions.length){navigate('inicio');return}session={questions,index:0,answered:null,score:0,mode};if(isLayoutCheck)layoutCheckRoute='reto';else location.hash='reto';window.scrollTo({top:0,behavior:'instant'});quiz();}
   function answer(index){if(!session || session.answered!==null)return;const q=session.questions[session.index];session.answered=index;if(index===q.answer){session.score++;progress.correct[q.key]=true;delete progress.missed[q.key]}else progress.missed[q.key]=true;if(session.mode==='daily')progress.days[dateKey()]=true;save();quiz();}
   function quiz(){if(!session){navigate('inicio');return}const {questions,index,answered,score}=session;if(index>=questions.length){result();return}const q=questions[index];app.innerHTML=`<div class="view quiz-wrap"><button class="back" id="exit">← Salir del reto</button><div class="eyebrow">${session.mode==='mock'?'Simulacro':session.mode==='daily'?'Reto del día':session.mode==='missed'?'Repaso de fallos':'Práctica de tema'} · ${q.topicTitle}</div><div class="quiz-progress">Pregunta ${index+1} de ${questions.length} · ${score} ${score===1?'acierto':'aciertos'}</div><div class="quiz-progress-track"><div style="width:${(index+1)/questions.length*100}%"></div></div><div class="question-card"><span class="pill">Piensa antes de pulsar</span><h1>${escapeHTML(q.q)}</h1><div class="choices" role="group" aria-label="Opciones de respuesta">${q.choices.map((c,i)=>`<button class="choice ${answered!==null?(i===q.answer?'correct':i===answered?'incorrect':''):''}" data-answer="${i}" ${answered!==null?'disabled':''}>${String.fromCharCode(65+i)} · ${escapeHTML(c)}</button>`).join('')}</div>${answered!==null?`<div class="explanation" role="status"><strong>${answered===q.answer?'¡Exacto! +10 XP si era nueva':'Casi. Esta es la regla:'}</strong><p>${q.why}</p></div><div class="quiz-controls"><button class="primary" id="next">${index===questions.length-1?'Ver resultado':'Siguiente pregunta'}</button><button class="secondary" id="source">Consultar fuente</button></div>`:''}</div></div>`;
     app.querySelector('#exit').onclick=()=>{session=null;navigate('inicio')};
@@ -325,6 +326,7 @@
     app.querySelector('#next').onclick=()=>navigate(`caso/${index+1}`);
   }
   function render(){updateXp();if(oral && oralLeft()<=0){finishOral('time');return}if(timed && timeLeft()<=0){finishTimed('time');return}const route=hash();if(route==='oral'){oralChallenge();return}if(route==='oral-resultado'){oralResult();return}if(route==='entrevista-resultado'){timedResult();return}if(route==='reto'){quiz();return}if(route==='salidas'){outputHub();return}if(route==='talleres'){workshopHub();return}if(route.startsWith('taller/')){const [,groupId,caseId]=route.split('/');workshopCase(groupId,caseId);return}if(route==='patrones'){patternHub();return}if(route.startsWith('patron/')){patternDetail(route.split('/')[1]);return}if(route==='laboratorio'){codeHub();return}if(route.startsWith('codigo/')){codeChallenge(route.split('/')[1]);return}if(route.startsWith('salida/')){outputChallenge(route.split('/')[1]);return}if(route.startsWith('tema/')){lesson(route.split('/')[1]);return}if(route.startsWith('caso/')){scenario(Number(route.split('/')[1]));return}dashboard()}
+  if(isLayoutCheck)window.INTERVIEW_LAYOUT_CHECK={open:navigate};
   window.addEventListener('hashchange',render);render();
   if(document.modelContext?.registerTool){try{
     const register=(tool)=>Promise.resolve(document.modelContext.registerTool(tool)).catch(()=>{});

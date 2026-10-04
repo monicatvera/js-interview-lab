@@ -5,7 +5,7 @@
 </style></head><body><h1>Comprobación responsive</h1><p>Herramienta de revisión: comprueba el ancho de la página y recorre sus pantallas. No sustituye una prueba táctil en un móvil real.</p>
 <label>Ancho <select id="width"><option>320</option><option selected>390</option><option>610</option><option>768</option><option>1024</option><option>1440</option></select></label>
 <label>Pantalla <select id="route"><option value="inicio">Inicio</option></select></label>
-<div class="bar"><button id="show">Ver pantalla</button><button id="run">Revisar todas las pantallas</button></div><p id="status" role="status">Preparando…</p><div id="stage"><iframe id="preview" title="Web en el ancho seleccionado" src="./index.html?responsive-check=1" style="width:390px"></iframe></div><details><summary>Resultados</summary><pre id="report"></pre></details>
+<div class="bar"><button id="show">Ver pantalla</button><button id="run">Revisar todas las pantallas</button></div><p id="status" role="status">Preparando…</p><div id="stage"><iframe id="preview" title="Web en el ancho seleccionado" src="./index.html?responsive-check=1&v=2" style="width:390px"></iframe></div><details><summary>Resultados</summary><pre id="report"></pre></details>
 <script>
 const frame=document.querySelector('#preview'), status=document.querySelector('#status'), report=document.querySelector('#report'), route=document.querySelector('#route'), width=document.querySelector('#width');
 let checks=0,failures=[],routes=[];
@@ -19,7 +19,7 @@ function check(label){
  const bad=[...d.querySelectorAll('button,a,input,select,textarea,h1,h2,.panel,.lesson-card,.question-card,.code')].filter(el=>{if(!el.getClientRects().length||el.closest('dialog:not([open])'))return false;const b=el.getBoundingClientRect();return b.left < -1 || b.right>root.clientWidth+1;}).map(el=>el.tagName+'.'+el.className+': '+(el.textContent||'').trim().slice(0,65));
  checks++; if(over>1||bad.length)failures.push({width:width.value,screen:label,overflow:over,elements:bad.slice(0,8)});
 }
-async function go(hash){const w=frame.contentWindow;w.location.hash=hash;w.dispatchEvent(new w.HashChangeEvent('hashchange'));await tick();}
+async function go(hash){frame.contentWindow.INTERVIEW_LAYOUT_CHECK.open(hash);await tick();}
 function click(selector){const el=frame.contentDocument.querySelector(selector);if(!el)throw Error('Falta control '+selector+' en '+frame.contentWindow.location.hash);el.click();}
 function addRoute(value,title){routes.push(value);const o=document.createElement('option');o.value=value;o.textContent=title;route.append(o);}
 frame.addEventListener('load',()=>{
@@ -34,11 +34,11 @@ frame.addEventListener('load',()=>{
  w.SCENARIOS.forEach((t,i)=>addRoute('caso/'+i,'Situación '+(i+1)));
  status.textContent='Listo: '+(routes.length+1)+' pantallas disponibles.';
 });
-document.querySelector('#show').onclick=async()=>{frame.style.width=width.value+'px';if(!frame.contentWindow.COURSE){const loaded=waitLoad();frame.src='./index.html?responsive-check=1';await loaded;}await go(route.value);status.textContent='Vista de '+width.value+' px · '+route.selectedOptions[0].textContent;};
+document.querySelector('#show').onclick=async()=>{frame.style.width=width.value+'px';if(!frame.contentWindow.COURSE){const loaded=waitLoad();frame.src='./index.html?responsive-check=1&v=2';await loaded;}await go(route.value);status.textContent='Vista de '+width.value+' px · '+route.selectedOptions[0].textContent;};
 document.querySelector('#run').onclick=async()=>{
  document.querySelector('#run').disabled=true;document.querySelector('#show').disabled=true;checks=0;failures=[];
  try{
-  if(!frame.contentWindow.COURSE){const loaded=waitLoad();frame.src='./index.html?responsive-check=1';await loaded;}
+  if(!frame.contentWindow.COURSE){const loaded=waitLoad();frame.src='./index.html?responsive-check=1&v=2';await loaded;}
   for(const size of ['320','390','610','768','1024','1440']){
    width.value=size;frame.style.width=size+'px';
    await new Promise(resolve=>setTimeout(resolve,0));
@@ -55,6 +55,7 @@ document.querySelector('#run').onclick=async()=>{
      while(frame.contentDocument.querySelector('[data-workshop-answer]')){click('[data-workshop-answer="0"]');await tick();check(r+' respuesta');click('#nextWorkshop');await tick();}
      check(r+' resumen');
     }
+    if(r.startsWith('caso/')){click('#hintBtn');click('#solutionBtn');await tick();check(r+' solución');}
     if(r.startsWith('patron/')){const details=frame.contentDocument.querySelector('details');if(details){details.open=true;await tick();check(r+' código');}}
    }
    for(const bank of ['general','react']){

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Comprobación responsive · JS Interview Lab</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101525;color:#edf3ff;font:16px/1.5 system-ui;padding:20px}h1{font-size:24px}button,select{font:inherit;padding:9px;border-radius:8px;border:1px solid #718095;background:#24334a;color:inherit}label{display:inline-block;margin:0 12px 12px 0}button{cursor:pointer}.bar{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}#status{color:#b7f26b}#stage{overflow:auto;max-width:100%;padding:4px}iframe{height:760px;border:1px solid #677a97;display:block;background:#101525}pre{white-space:pre-wrap;overflow-wrap:anywhere}a{color:#b7f26b}
+</style></head><body><h1>Comprobación responsive</h1><p>Herramienta de revisión: comprueba el ancho de la página y recorre sus pantallas. No sustituye una prueba táctil en un móvil real.</p>
+<label>Ancho <select id="width"><option>320</option><option selected>390</option><option>610</option><option>768</option><option>1024</option><option>1440</option></select></label>
+<label>Pantalla <select id="route"><option value="inicio">Inicio</option></select></label>
+<div class="bar"><button id="show">Ver pantalla</button><button id="run">Revisar todas las pantallas</button></div><p id="status" role="status">Preparando…</p><div id="stage"><iframe id="preview" title="Web en el ancho seleccionado" src="./index.html?responsive-check=1" style="width:390px"></iframe></div><details><summary>Resultados</summary><pre id="report"></pre></details>
+<script>
+const frame=document.querySelector('#preview'), status=document.querySelector('#status'), report=document.querySelector('#report'), route=document.querySelector('#route'), width=document.querySelector('#width');
+let checks=0,failures=[],routes=[];
+const tick=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+const waitLoad=()=>new Promise(resolve=>frame.addEventListener('load',resolve,{once:true}));
+function check(label){
+ const d=frame.contentDocument, root=d.documentElement;
+ const over=root.scrollWidth-root.clientWidth;
+ const bad=[...d.querySelectorAll('button,a,input,select,textarea,h1,h2,.panel,.lesson-card,.question-card,.code')].filter(el=>{if(!el.getClientRects().length||el.closest('dialog:not([open])'))return false;const b=el.getBoundingClientRect();return b.left < -1 || b.right>root.clientWidth+1;}).map(el=>el.tagName+'.'+el.className+': '+(el.textContent||'').trim().slice(0,65));
+ checks++; if(over>1||bad.length)failures.push({width:width.value,screen:label,overflow:over,elements:bad.slice(0,8)});
+}
+async function go(hash){frame.contentWindow.location.hash=hash;await tick();}
+function click(selector){const el=frame.contentDocument.querySelector(selector);if(!el)throw Error('Falta control '+selector+' en '+frame.contentWindow.location.hash);el.click();}
+function addRoute(value,title){routes.push(value);const o=document.createElement('option');o.value=value;o.textContent=title;route.append(o);}
+frame.addEventListener('load',()=>{
+ if(routes.length||!frame.contentWindow.COURSE)return;
+ const w=frame.contentWindow;
+ ['salidas','laboratorio','patrones','talleres'].forEach(id=>addRoute(id,id));
+ w.COURSE.forEach(t=>addRoute('tema/'+t.id,t.title));
+ w.OUTPUT_CHALLENGES.forEach(t=>addRoute('salida/'+t.id,t.title));
+ w.CODE_PROBLEMS.forEach(t=>addRoute('codigo/'+t.id,t.title));
+ w.INTERVIEW_WORKSHOPS.forEach(g=>g.cases.forEach(c=>addRoute('taller/'+g.id+'/'+c.id,c.title)));
+ w.SOLUTION_PATTERNS.forEach(t=>addRoute('patron/'+t.id,t.title));
+ w.SCENARIOS.forEach((t,i)=>addRoute('caso/'+i,'Situación '+(i+1)));
+ status.textContent='Listo: '+(routes.length+1)+' pantallas disponibles.';
+});
+document.querySelector('#show').onclick=async()=>{frame.style.width=width.value+'px';if(!frame.contentWindow.COURSE){const loaded=waitLoad();frame.src='./index.html?responsive-check=1';await loaded;}await go(route.value);status.textContent='Vista de '+width.value+' px · '+route.selectedOptions[0].textContent;};
+document.querySelector('#run').onclick=async()=>{
+ document.querySelector('#run').disabled=true;document.querySelector('#show').disabled=true;checks=0;failures=[];
+ try{
+  if(!frame.contentWindow.COURSE){const loaded=waitLoad();frame.src='./index.html?responsive-check=1';await loaded;}
+  for(const size of ['320','390','610','768','1024','1440']){
+   width.value=size;frame.style.width=size+'px';
+   for(const r of ['inicio',...routes]){
+    status.textContent='Revisando '+size+' px · '+r+' · '+checks+' comprobaciones';
+    await go(r);check(r);
+    if(r.startsWith('tema/')){click('#practice');await tick();
+     while(frame.contentDocument.querySelector('[data-answer]')){check(r+' test');click('[data-answer="0"]');await tick();check(r+' explicación');click('#next');await tick();}
+     check(r+' resultado');
+    }
+    if(r.startsWith('salida/')){click('#showOutput');await tick();check(r+' solución');}
+    if(r.startsWith('codigo/')){click('#hintCode');click('#solutionCode');await tick();check(r+' pistas/solución');}
+    if(r.startsWith('taller/')){
+     while(frame.contentDocument.querySelector('[data-workshop-answer]')){click('[data-workshop-answer="0"]');await tick();check(r+' respuesta');click('#nextWorkshop');await tick();}
+     check(r+' resumen');
+    }
+    if(r.startsWith('patron/')){const details=frame.contentDocument.querySelector('details');if(details){details.open=true;await tick();check(r+' código');}}
+   }
+   for(const bank of ['general','react']){
+    await go('inicio');frame.contentDocument.querySelector('#oralBank').value=bank;click('#oralBtn');await tick();
+    for(let i=0;i<10;i++){check('oral '+bank+' '+i);click('#revealOral');await tick();check('oral modelo '+bank+' '+i);click('#oralNext');await tick();}
+    frame.contentDocument.querySelectorAll('details').forEach(el=>el.open=true);await tick();check('oral resultado '+bank);
+   }
+   await go('laboratorio');click('#startTimed');await tick();check('simulacro código');click('#finishTimed');await tick();check('simulacro resultado');
+  }
+  for(const size of ['320','768']){
+   width.value=size;frame.style.width=size+'px';
+   const ids=routes.filter(r=>r.startsWith('tema/')).map(r=>r.slice(5));
+   for(const id of ['index',...ids]){
+    status.textContent='Revisando páginas estáticas · '+size+' px · '+id;
+    const loaded=waitLoad();frame.src='./temas/'+id+'.html';await loaded;await tick();check('estática '+id);
+   }
+  }
+  status.textContent=checks+' comprobaciones · '+failures.length+' desbordamientos detectados.';
+  report.textContent=JSON.stringify({checks,failures},null,2);
+ }catch(e){status.textContent='Revisión detenida: '+e.message;report.textContent=JSON.stringify({checks,failures,error:e.message},null,2);}
+ finally{document.querySelector('#run').disabled=false;document.querySelector('#show').disabled=false;}
+};
+</script></body></html>

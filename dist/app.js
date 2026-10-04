@@ -1,7 +1,18 @@
 (() => {
+  // The responsive check uses temporary progress, never the learner's saved data.
+  const isLayoutCheck = new URLSearchParams(location.search).get('responsive-check') === '1';
+  const storageFor = kind => {
+    const temporary = new Map();
+    return {
+      getItem: key => isLayoutCheck ? temporary.get(key) ?? null : window[kind].getItem(key),
+      setItem: (key, value) => isLayoutCheck ? temporary.set(key, String(value)) : window[kind].setItem(key, value),
+      removeItem: key => isLayoutCheck ? temporary.delete(key) : window[kind].removeItem(key)
+    };
+  };
+  const localStore = storageFor('localStorage'), sessionStore = storageFor('sessionStorage');
   const lessons = window.COURSE;
   const KEY = 'js-interview-lab-v1';
-  const getSaved = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
+  const getSaved = () => { try { return JSON.parse(localStore.getItem(KEY)) || {}; } catch { return {}; } };
   const saved = getSaved();
   const progress = {read: saved.read || {}, correct: saved.correct || {}, missed: saved.missed || {}, days: saved.days || {}, outputCorrect: saved.outputCorrect || {}, codeSolved: saved.codeSolved || {}, workshops: saved.workshops || {}};
   const outputChallenges = window.OUTPUT_CHALLENGES || [];
@@ -15,16 +26,16 @@
   let codeFilter = 'Todos';
   const TIMED_KEY = 'js-interview-lab-timed-v1';
   const RESULT_KEY = 'js-interview-lab-timed-result-v1';
-  const readSession = key => {try{return JSON.parse(sessionStorage.getItem(key))}catch{return null}};
+  const readSession = key => {try{return JSON.parse(sessionStore.getItem(key))}catch{return null}};
   let timed = readSession(TIMED_KEY);
   const ORAL_KEY = 'js-interview-lab-oral-v1';
   const ORAL_RESULT_KEY = 'js-interview-lab-oral-result-v1';
   const oralBanks = { general: window.ORAL_INTERVIEW || [], react: window.REACT_ORAL_INTERVIEW || [] };
   const questionsFor = attempt => oralBanks[attempt?.bank] || oralBanks.general;
   let oral = readSession(ORAL_KEY);
-  const persistOral = () => {try{sessionStorage.setItem(ORAL_KEY,JSON.stringify(oral))}catch{}};
+  const persistOral = () => {try{sessionStore.setItem(ORAL_KEY,JSON.stringify(oral))}catch{}};
   const oralLeft = () => oral ? Math.max(0,Math.ceil((oral.deadline-Date.now())/1000)) : 0;
-  const persistTimed = () => {try{sessionStorage.setItem(TIMED_KEY,JSON.stringify(timed))}catch{}};
+  const persistTimed = () => {try{sessionStore.setItem(TIMED_KEY,JSON.stringify(timed))}catch{}};
   const timeLeft = () => Math.max(0, Math.ceil((timed.deadline-Date.now())/1000));
   const clockText = seconds => `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   function startTimed(){
@@ -35,7 +46,7 @@
   function finishTimed(reason){
     if(!timed)return;
     const result={...timed,reason,endedAt:Date.now()};
-    try{sessionStorage.setItem(RESULT_KEY,JSON.stringify(result));sessionStorage.removeItem(TIMED_KEY)}catch{}
+    try{sessionStore.setItem(RESULT_KEY,JSON.stringify(result));sessionStore.removeItem(TIMED_KEY)}catch{}
     timed=null;navigate('entrevista-resultado');
   }
   function updateClock(){
@@ -59,10 +70,10 @@
   function finishOral(reason){
     if(!oral)return;
     const result={...oral,reason,endedAt:Date.now()};
-    try{sessionStorage.setItem(ORAL_RESULT_KEY,JSON.stringify(result));sessionStorage.removeItem(ORAL_KEY)}catch{}
+    try{sessionStore.setItem(ORAL_RESULT_KEY,JSON.stringify(result));sessionStore.removeItem(ORAL_KEY)}catch{}
     oral=null;navigate('oral-resultado');
   }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(progress)); } catch {} updateXp(); };
+  const save = () => { try { localStore.setItem(KEY, JSON.stringify(progress)); } catch {} updateXp(); };
   const xp = () => Object.keys(progress.correct).length * 10 + Object.keys(progress.read).length * 5 + Object.keys(progress.outputCorrect).length * 15 + Object.keys(progress.codeSolved).length * 25 + Object.keys(progress.workshops).length * 15;
   const updateXp = () => document.querySelector('#topXp').textContent = `✦ ${xp()} XP`;
   const escapeHTML = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -80,9 +91,10 @@
     const visible = lessons.filter(t => filter === 'Todos' || t.category === filter);
     app.innerHTML = `<section class="dashboard"><div class="eyebrow">Aprende · razona · responde</div><h1>Entiende JavaScript.<br><em>Practica para tu entrevista.</em></h1><p class="intro">Explicaciones desde cero, ejemplos reales y ${allQuestions.length} preguntas explicadas. Elige un tema, lee un ejemplo y comprueba lo que has entendido.</p><div class="stats"><div class="stat"><strong>${completed}/${lessons.length}</strong> temas leídos</div><div class="stat"><strong>${mastered}</strong> dominados</div><div class="stat"><strong>${streak()}</strong> días de racha</div><div class="stat"><strong>${Object.keys(progress.outputCorrect).length}/${outputChallenges.length}</strong> salidas resueltas</div><div class="stat"><strong>${Object.keys(progress.codeSolved).length}/${codeProblems.length}</strong> retos de código</div></div></section>
     <div class="layout"><section><div class="section-heading"><div><h2>Temas para estudiar</h2><p>Elige un concepto, entiende la regla y ponte a prueba.</p></div><span class="chip">${lessons.length} temas</span></div><div class="controls" role="group" aria-label="Filtrar temas">${categories.map(c=>`<button class="filter" data-filter="${c}" aria-pressed="${filter===c}">${c}</button>`).join('')}</div><div class="topic-grid">${visible.map(t => {const done=t.questions.every((_,i)=>progress.correct[`${t.id}-${i}`]);return `<a class="topic" href="temas/${encodeURIComponent(t.id)}.html" data-topic="${t.id}"><span class="topic-top"><span class="topic-icon">${t.icon}</span><span class="topic-status">${done?'✓ Dominado':progress.read[t.id]?'En progreso':t.level}</span></span><h3>${t.title}</h3><p>${t.subtitle}</p><span class="topic-bottom"><span>${t.minutes} min · ${t.questions.length} retos</span><b>Explorar ↗</b></span></a>`}).join('')}</div></section>
-    <aside class="side"><div class="panel pattern-panel"><div class="panel-kicker">🧭 Aprende a resolver</div><h3>Reconoce el patrón</h3><p>Cuatro ideas para saber por dónde empezar: dos punteros, ventanas, mapas y pilas. Muévelas paso a paso antes de ir al editor.</p><button class="primary wide" id="patternsBtn">Ver patrones →</button></div><div class="panel arena-panel"><div class="panel-kicker">⌘ Practica escribiendo código</div><h3>Retos de JavaScript</h3><p>${codeProblems.length} problemas con editor, tests automáticos, pistas y tutora IA local opcional. Empieza fácil y sube de nivel.</p><button class="primary wide" id="arenaBtn">Entrar al laboratorio →</button></div><div class="panel output-panel"><div class="panel-kicker">⌨️ Escribe la respuesta</div><h3>¿Qué imprime este código?</h3><p>Sin opciones: escribe la salida y descubre por qué aparece cada línea. Hay ${outputChallenges.length} retos.</p><button class="primary wide" id="outputBtn">Practicar salidas</button></div><div class="panel starter"><div class="panel-kicker">🌱 ¿Por dónde empiezo?</div><h3>Empieza por aquí</h3><p>1. Tipos y variables<br>2. Closures<br>3. Event loop<br>4. Promises<br>5. React y componentes</p><button class="secondary wide" id="startBtn">Empezar desde cero</button></div><div class="panel case-panel"><div class="panel-kicker">🧩 Entrevista práctica</div><h3>Practica una situación real</h3><p>Practica ${window.SCENARIOS.length} situaciones: componentes, búsquedas y ejercicios de JavaScript. Pide una pista y compara tu respuesta.</p><button class="secondary wide" id="caseBtn">Practicar un caso</button></div><div class="panel challenge"><div class="panel-kicker">⚡ Reto del día</div><h3>${dailyDone?'¡Reto completado!':'Una pregunta para calentar'}</h3><p>${dailyDone?'Vuelve mañana para una pregunta nueva o continúa con el simulacro.':`Hoy toca ${daily().topicTitle.toLowerCase()}. ¿Te atreves a responder sin mirar?`}</p><button class="primary wide" id="dailyBtn">${dailyDone?'Repetir reto':'Jugar ahora'}</button></div><div class="panel"><div class="panel-kicker">Modo entrevista</div><h3>12 preguntas. Sin apuntes.</h3><p>Una mezcla de JavaScript, React, CSS, TypeScript y arquitectura. Al responder, verás por qué la opción es correcta.</p><button class="secondary wide" id="mockBtn">Empezar simulacro</button>${Object.keys(progress.missed).length?`<button class="secondary wide" id="missedBtn" style="margin-top:9px">Repasar mis fallos (${Object.keys(progress.missed).length})</button>`:''}</div><div class="panel"><div class="panel-kicker">Tu avance</div><h3>${Math.round(Object.keys(progress.correct).length/allQuestions.length*100)}% de preguntas dominadas</h3><div class="progress-track"><div class="progress-fill" style="width:${Object.keys(progress.correct).length/allQuestions.length*100}%"></div></div><p class="small">${Object.keys(progress.correct).length} de ${allQuestions.length} aciertos únicos · ${xp()} XP</p></div></aside></div>`;
-    app.querySelector('.dashboard .intro').insertAdjacentHTML('afterend',`<div class="dashboard-actions"><button class="primary" id="workshopsTopBtn">Practicar entrevistas reales →</button></div>`);
+    <aside class="side" id="practiceModes" tabindex="-1"><div class="panel pattern-panel"><div class="panel-kicker">🧭 Aprende a resolver</div><h3>Reconoce el patrón</h3><p>Cuatro ideas para saber por dónde empezar: dos punteros, ventanas, mapas y pilas. Muévelas paso a paso antes de ir al editor.</p><button class="primary wide" id="patternsBtn">Ver patrones →</button></div><div class="panel arena-panel"><div class="panel-kicker">⌘ Practica escribiendo código</div><h3>Retos de JavaScript</h3><p>${codeProblems.length} problemas con editor, tests automáticos, pistas y tutora IA local opcional. Empieza fácil y sube de nivel.</p><button class="primary wide" id="arenaBtn">Entrar al laboratorio →</button></div><div class="panel output-panel"><div class="panel-kicker">⌨️ Escribe la respuesta</div><h3>¿Qué imprime este código?</h3><p>Sin opciones: escribe la salida y descubre por qué aparece cada línea. Hay ${outputChallenges.length} retos.</p><button class="primary wide" id="outputBtn">Practicar salidas</button></div><div class="panel starter"><div class="panel-kicker">🌱 ¿Por dónde empiezo?</div><h3>Empieza por aquí</h3><p>1. Tipos y variables<br>2. Closures<br>3. Event loop<br>4. Promises<br>5. React y componentes</p><button class="secondary wide" id="startBtn">Empezar desde cero</button></div><div class="panel case-panel"><div class="panel-kicker">🧩 Entrevista práctica</div><h3>Practica una situación real</h3><p>Practica ${window.SCENARIOS.length} situaciones: componentes, búsquedas y ejercicios de JavaScript. Pide una pista y compara tu respuesta.</p><button class="secondary wide" id="caseBtn">Practicar un caso</button></div><div class="panel challenge"><div class="panel-kicker">⚡ Reto del día</div><h3>${dailyDone?'¡Reto completado!':'Una pregunta para calentar'}</h3><p>${dailyDone?'Vuelve mañana para una pregunta nueva o continúa con el simulacro.':`Hoy toca ${daily().topicTitle.toLowerCase()}. ¿Te atreves a responder sin mirar?`}</p><button class="primary wide" id="dailyBtn">${dailyDone?'Repetir reto':'Jugar ahora'}</button></div><div class="panel"><div class="panel-kicker">Modo entrevista</div><h3>12 preguntas. Sin apuntes.</h3><p>Una mezcla de JavaScript, React, CSS, TypeScript y arquitectura. Al responder, verás por qué la opción es correcta.</p><button class="secondary wide" id="mockBtn">Empezar simulacro</button>${Object.keys(progress.missed).length?`<button class="secondary wide" id="missedBtn" style="margin-top:9px">Repasar mis fallos (${Object.keys(progress.missed).length})</button>`:''}</div><div class="panel"><div class="panel-kicker">Tu avance</div><h3>${Math.round(Object.keys(progress.correct).length/allQuestions.length*100)}% de preguntas dominadas</h3><div class="progress-track"><div class="progress-fill" style="width:${Object.keys(progress.correct).length/allQuestions.length*100}%"></div></div><p class="small">${Object.keys(progress.correct).length} de ${allQuestions.length} aciertos únicos · ${xp()} XP</p></div></aside></div>`;
+    app.querySelector('.dashboard .intro').insertAdjacentHTML('afterend',`<nav class="dashboard-actions" aria-label="Accesos a la práctica"><button class="primary" id="workshopsTopBtn">Entrevistas guiadas →</button><a class="secondary" href="#laboratorio">Retos de código</a><a class="secondary" href="#salidas">¿Qué imprime?</a><a class="secondary" href="#patrones">Patrones paso a paso</a><button class="secondary" id="practiceModesBtn">Simulacros y más ↓</button></nav>`);
     app.querySelector('#workshopsTopBtn').onclick=()=>navigate('talleres');
+    app.querySelector('#practiceModesBtn').onclick=()=>{const modes=app.querySelector('#practiceModes');modes.scrollIntoView({block:'start'});modes.focus({preventScroll:true})};
     app.querySelector('.side').insertAdjacentHTML('afterbegin',`<div class="panel workshop-panel"><div class="panel-kicker">🎯 Nuevas entrevistas guiadas</div><h3>React, arquitectura y equipo</h3><p>Decide qué harías ante situaciones reales. Hay ${workshops.reduce((sum,group)=>sum+group.cases.length,0)} casos con explicación, criterios de comprobación y retos de código.</p><button class="primary wide" id="workshopsBtn">Entrenar entrevistas →</button></div>`);
     app.querySelector('#workshopsBtn').onclick=()=>navigate('talleres');
     app.querySelector('.side').insertAdjacentHTML('afterbegin',`<div class="panel oral-panel"><div class="panel-kicker">🎙️ Entrevista en voz alta</div><h3>10 preguntas · 30 minutos</h3><p>Elige JavaScript y navegador o React senior. Explica qué harías, por qué, cuándo lo evitarías y un ejemplo. Cada simulacro tiene 10 preguntas y respuesta modelo.</p><label for="oralBank">Tema del simulacro</label><select id="oralBank" class="output-input" ${oral?'disabled':''}><option value="general" ${oral?.bank!=='react'?'selected':''}>JavaScript y navegador</option><option value="react" ${oral?.bank==='react'?'selected':''}>React senior</option></select><button class="primary wide" id="oralBtn">${oral?'Continuar simulacro →':'Empezar simulacro oral →'}</button></div>`);
@@ -208,8 +220,8 @@
       app.querySelector('#practiceCode')?.addEventListener('click',()=>navigate(`codigo/${item.codeId}`));
       if(item.practicePrompt){
         const editor=app.querySelector('#projectAnswer'),key=`js-interview-lab-story-${groupId}-${caseId}`;
-        try{editor.value=localStorage.getItem(key)||''}catch{}
-        editor.addEventListener('input',()=>{try{localStorage.setItem(key,editor.value)}catch{}});
+        try{editor.value=localStore.getItem(key)||''}catch{}
+        editor.addEventListener('input',()=>{try{localStore.setItem(key,editor.value)}catch{}});
         app.querySelector('#revealProject').onclick=()=>{app.querySelector('#projectExample').hidden=false;app.querySelector('#revealProject').disabled=true};
       }
     };
@@ -269,8 +281,8 @@
     app.querySelector('#finishTimed')?.addEventListener('click',()=>finishTimed('manual'));
     const editor=app.querySelector('#codeEditor');
     const draftKey=`js-interview-lab-code-${id}`;
-    try { editor.value=localStorage.getItem(draftKey) || p.starter; } catch {}
-    editor.addEventListener('input',()=>{try{localStorage.setItem(draftKey,editor.value)}catch{}});
+    try { editor.value=localStore.getItem(draftKey) || p.starter; } catch {}
+    editor.addEventListener('input',()=>{try{localStore.setItem(draftKey,editor.value)}catch{}});
     editor.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const start=editor.selectionStart;editor.setRangeText('  ',start,editor.selectionEnd,'end');editor.dispatchEvent(new Event('input'))}});
     app.querySelector('#resetCode').onclick=()=>{if(editor.value!==p.starter && !confirm('¿Borrar tu solución de este reto y volver al inicio?'))return;editor.value=p.starter;editor.dispatchEvent(new Event('input'));app.querySelector('#codeFeedback').innerHTML=''};
     app.querySelector('#hintCode').onclick=()=>{const el=app.querySelector('#hintText');el.hidden=false;el.textContent=p.hint};
